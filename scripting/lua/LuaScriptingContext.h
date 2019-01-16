@@ -23,10 +23,8 @@ class LuaContext : public ContextBase
 public:
 	static const std::string STATE_FIELD;
 
-	LuaContext(vstd::CLoggerBase * logger_, const Script * source);
+	LuaContext(const Script * source, const Environment * env_);
 	virtual ~LuaContext();
-
-	void init(const GameCb * cb, const BattleCb * battleCb);
 
 	void run(const JsonNode & initialState) override;
 
@@ -66,8 +64,7 @@ private:
 
 	const Script * script;
 
-	const GameCb * icb;
-	const BattleCb * bicb;
+	const Environment * env;
 
 	void cleanupGlobals();
 

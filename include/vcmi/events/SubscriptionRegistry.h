@@ -10,6 +10,8 @@
 
 #pragma once
 
+class Environment;
+
 namespace events
 {
 
@@ -22,11 +24,11 @@ public:
 };
 
 template <typename E>
-class SubscriptionRegistry
+class SubscriptionRegistry : public boost::noncopyable
 {
 public:
-	using PreHandler = std::function<void(const EventBus *, E &)>;
-	using PostHandler = std::function<void(const EventBus *, const E &)>;
+	using PreHandler = std::function<void(const Environment *, const EventBus *, E &)>;
+	using PostHandler = std::function<void(const Environment *, const EventBus *, const E &)>;
 	using BusTag = const void *;
 
 	std::unique_ptr<EventSubscription> subscribeBefore(BusTag tag, PreHandler && cb)
@@ -47,7 +49,7 @@ public:
 		return make_unique<PostSubscription>(tag, storage);
 	}
 
-	void executeEvent(const EventBus * bus, E & event)
+	void executeEvent(const Environment * env, const EventBus * bus, E & event)
 	{
 		boost::shared_lock<boost::shared_mutex> lock(mutex);
 		{
@@ -56,11 +58,11 @@ public:
 			if(it != std::end(preHandlers))
 			{
 				for(auto & h : it->second)
-					(*h)(bus, event);
+					(*h)(env, bus, event);
 			}
 		}
 
-		event.execute(bus);
+		event.execute(env, bus);
 
 		{
 			auto it = postHandlers.find(bus);
@@ -68,7 +70,7 @@ public:
 			if(it != std::end(postHandlers))
 			{
 				for(auto & h : it->second)
-					(*h)(bus, event);
+					(*h)(env, bus, event);
 			}
 		}
 	}
@@ -84,9 +86,9 @@ private:
 		{
 		}
 
-		void operator()(const EventBus * bus, E & event)
+		void operator()(const Environment * env, const EventBus * bus, E & event)
 		{
-			cb(bus, event);
+			cb(env, bus, event);
 		}
 	private:
 		T cb;
@@ -106,6 +108,8 @@ private:
 
 		virtual ~PreSubscription()
 		{
+			boost::unique_lock<boost::shared_mutex> lock(E::getRegistry()->mutex);
+
 			auto & handlers = E::getRegistry()->preHandlers;
 			auto it = handlers.find(tag);
 
@@ -128,6 +132,8 @@ private:
 
 		virtual ~PostSubscription()
 		{
+			boost::unique_lock<boost::shared_mutex> lock(E::getRegistry()->mutex);
+
 			auto & handlers = E::getRegistry()->postHandlers;
 			auto it = handlers.find(tag);
 

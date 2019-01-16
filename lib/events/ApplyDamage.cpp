@@ -20,18 +20,23 @@ ApplyDamage::ApplyDamage(BattleStackAttacked * pack_, std::shared_ptr<battle::Un
 	: pack(pack_),
 	target(target_)
 {
-
+	initalDamage = pack->damageAmount;
 }
 
-void ApplyDamage::execute(const EventBus * bus)
+void ApplyDamage::execute(const Environment * env, const EventBus * bus)
 {
-
+	//TODO: move CStack::prepareAttacked code here, except REBIRTH
 }
 
 SubscriptionRegistry<ApplyDamage> * ApplyDamage::getRegistry()
 {
 	static std::unique_ptr<SubscriptionRegistry<ApplyDamage>> Instance = make_unique<SubscriptionRegistry<ApplyDamage>>();
 	return Instance.get();
+}
+
+int64_t ApplyDamage::getInitalDamage()
+{
+	return initalDamage;
 }
 
 int64_t ApplyDamage::getDamage()

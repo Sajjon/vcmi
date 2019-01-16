@@ -13,6 +13,7 @@
 #include <lua.hpp>
 
 #include "api/Registry.h"
+#include "LuaFunctor.h"
 
 /*
  * Original code is LunaWrapper by nornagon.
@@ -31,86 +32,86 @@ namespace detail
 	struct RegType
 	{
 		const char * name;
-		int(* functor)(lua_State *, T);
+		std::function<int(lua_State *, T)> functor;
 	};
-}
 
-template<class T, class U = T> class OpaqueWrapper
-{
-public:
-	using Object = T *;
-	using RegType = detail::RegType<Object>;
-
-	static int registrator(lua_State * L, api::TypeRegistry * typeRegistry)
+	template <typename P, typename U>
+	struct Dispatcher
 	{
-		if(luaL_newmetatable(L, typeRegistry->getKey<Object *>()) != 0)
+		using ProxyType = P;
+		using UDataType = U;
+
+		static int invoke(lua_State * L)
 		{
-			lua_pushstring(L, "__index");
+			int i = (int)lua_tonumber(L, lua_upvalueindex(1));
 
+			void * raw = luaL_checkudata(L, 1, api::TypeRegistry::get()->getKey<UDataType *>());
+
+			if(!raw)
+			{
+				lua_settop(L, 0);
+				return 0;
+			}
+
+			lua_remove(L, 1);
+
+			auto obj = *(static_cast<UDataType *>(raw));
+			return (ProxyType::REGISTER[i].functor)(L, obj);
+		}
+
+		static void pushIndexTable(lua_State * L)
+		{
 			lua_newtable(L);
-
 			lua_Integer index = 0;
-
-			for(auto & reg : U::REGISTER)
+			for(auto & reg : ProxyType::REGISTER)
 			{
 				lua_pushstring(L, reg.name);
 				lua_pushnumber(L, index);
-				lua_pushcclosure(L, &OpaqueWrapper<T, U>::dispatcher, 1);
+				lua_pushcclosure(L, &invoke, 1);
 				lua_settable(L, -3);
 				index++;
 			}
+		}
+	};
+}
 
+template<class T, class Proxy = T> class OpaqueWrapper
+{
+public:
+	using UDataType = T *;
+    using SelfType = OpaqueWrapper<T, Proxy>;
+	using RegType = detail::RegType<UDataType>;
+
+	static int registrator(lua_State * L, api::TypeRegistry * typeRegistry)
+	{
+		if(luaL_newmetatable(L, typeRegistry->getKey<UDataType *>()) != 0)
+		{
+			lua_pushstring(L, "__index");
+			detail::Dispatcher<Proxy, UDataType>::pushIndexTable(L);
 			lua_settable(L, -3);
 		}
 
 		return 1;
 	}
-
-	static int dispatcher(lua_State * L)
-	{
-		int i = (int)lua_tonumber(L, lua_upvalueindex(1));
-
-		void * objPtr = luaL_checkudata(L, 1, api::TypeRegistry::get()->getKey<Object *>());
-
-		lua_remove(L, 1);
-
-		if(objPtr)
-		{
-			auto obj = static_cast<Object *>(objPtr);
-			return (U::REGISTER[i].functor)(L, *obj);
-		}
-
-		return 0;
-	}
 };
 
-template<class T, class U = T> class SharedWrapper
+template<class T, class Proxy = T> class SharedWrapper
 {
 public:
-	using Object = std::shared_ptr<T>;
-	using RegType = detail::RegType<Object>;
+	using UDataType = std::shared_ptr<T>;
+	using SelfType = SharedWrapper<T, Proxy>;
+	using RegType = detail::RegType<UDataType>;
 
 	static int registrator(lua_State * L, api::TypeRegistry * typeRegistry)
 	{
-		if(luaL_newmetatable(L, typeRegistry->getKey<Object *>()) != 0)
+		if(luaL_newmetatable(L, typeRegistry->getKey<UDataType *>()) != 0)
 		{
-			lua_Integer index = 0;
-
-			for(auto & reg : U::REGISTER)
-			{
-				lua_pushstring(L, reg.name);
-				lua_pushnumber(L, index);
-				lua_pushcclosure(L, &SharedWrapper<T, U>::dispatcher, 1);
-				lua_settable(L, -3);
-				index++;
-			}
-
-			lua_pushstring(L, "__gc");
-			lua_pushcfunction(L, &(SharedWrapper<T, U>::destructor));
+			lua_pushstring(L, "__index");
+			detail::Dispatcher<Proxy, UDataType>::pushIndexTable(L);
 			lua_settable(L, -3);
 
-			lua_pushstring(L, "__index");
-			lua_pushvalue(L, -2);
+			lua_pushstring(L, "__gc");
+			lua_pushcfunction(L, &(SelfType::destructor));
 			lua_settable(L, -3);
 		}
 
@@ -118,7 +119,7 @@ public:
 
 		lua_newtable(L);
 		lua_pushstring(L, "new");
-		lua_pushcfunction(L, &(SharedWrapper<T, U>::constructor));
+		lua_pushcfunction(L, &(SelfType::constructor));
 		lua_settable(L, -3);
 
 		return 1;
@@ -132,7 +133,7 @@ public:
 
 		lua_newtable(L);
 
-		void * raw = lua_newuserdata(L, sizeof(Object));
+		void * raw = lua_newuserdata(L, sizeof(UDataType));
 
 		if(!raw)
 		{
@@ -140,9 +141,9 @@ public:
 			return 0;
 		}
 
-		new(raw) Object(obj);
+		new(raw) UDataType(obj);
 
-		luaL_getmetatable(L, api::TypeRegistry::get()->getKey<Object *>());
+		luaL_getmetatable(L, api::TypeRegistry::get()->getKey<UDataType *>());
 
 		if(!lua_istable(L, -1))
 		{
@@ -155,31 +156,12 @@ public:
 		return 1;
 	}
 
-	static int dispatcher(lua_State * L)
-	{
-		int i = (int)lua_tonumber(L, lua_upvalueindex(1));
-
-		void * raw = luaL_checkudata(L, 1, api::TypeRegistry::get()->getKey<Object *>());
-
-		if(!raw)
-		{
-			lua_settop(L, 0);
-			return 0;
-		}
-
-		auto obj = *(static_cast<Object *>(raw));
-
-		lua_remove(L, 1);
-
-		return (U::REGISTER[i].functor)(L, obj);
-	}
-
 	static int destructor(lua_State * L)
 	{
-		void * objPtr = luaL_checkudata(L, 1, api::TypeRegistry::get()->getKey<Object *>());
+		void * objPtr = luaL_checkudata(L, 1, api::TypeRegistry::get()->getKey<UDataType *>());
 		if(objPtr)
 		{
-			auto obj = static_cast<Object *>(objPtr);
+			auto obj = static_cast<UDataType *>(objPtr);
 			obj->reset();
 		}
 

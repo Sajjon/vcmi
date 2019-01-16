@@ -10,12 +10,14 @@
 
 #pragma once
 
-#include <vcmi/events/SubscriptionRegistry.h>
+#include "SubscriptionRegistry.h"
+
+class Environment;
 
 namespace events
 {
 
-class DLL_LINKAGE EventBus
+class DLL_LINKAGE EventBus : public boost::noncopyable
 {
 public:
 	template <typename E>
@@ -33,10 +35,10 @@ public:
 	}
 
 	template <typename E>
-	void executeEvent(E & event) const
+	void executeEvent(const Environment * env, E & event) const
 	{
 		auto registry = E::getRegistry();
-		registry->executeEvent(this, event);
+		registry->executeEvent(env, this, event);
 	}
 };
 }

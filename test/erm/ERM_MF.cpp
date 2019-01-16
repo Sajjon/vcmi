@@ -16,7 +16,6 @@
 #include <vcmi/events/ApplyDamage.h>
 
 #include "../../lib/NetPacks.h"
-#include "../../lib/events/EventBus.h"
 
 
 namespace test
@@ -25,7 +24,6 @@ namespace scripting
 {
 using namespace ::testing;
 using ::events::ApplyDamage;
-using ::events::EventBus;
 
 template <typename T>
 class ListenerMock
@@ -38,8 +36,6 @@ public:
 class ERM_MF : public Test, public ScriptFixture
 {
 public:
-	events::EventBus eventBus;
-
 	StrictMock<ListenerMock<ApplyDamage>> listenerMock;
 
 	std::shared_ptr<StrictMock<UnitMock>> targetMock;
@@ -58,7 +54,7 @@ protected:
 	}
 };
 
-TEST_F(ERM_MF, ChangeDamage)
+TEST_F(ERM_MF, ChangesDamage)
 {
 	std::stringstream source;
 	source << "VERM" << std::endl;
@@ -72,14 +68,13 @@ TEST_F(ERM_MF, ChangeDamage)
 	run();
 
 	BattleStackAttacked pack;
+	pack.damageAmount = 23450;
 
-	std::shared_ptr<ApplyDamage> ev = std::make_shared<ApplyDamage>(&pack, targetMock);
+	ApplyDamage event(&pack, targetMock);
 
-	ev->setDamage(23450);
+	eventBus.executeEvent(&environmentMock, event);
 
-	eventBus.executeEvent(*ev.get());
-
-	EXPECT_EQ(ev->getDamage(), 23460);
+	EXPECT_EQ(pack.damageAmount, 23460);
 }
 
 }

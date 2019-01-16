@@ -29,14 +29,8 @@ public:
 
 	void pushNil();
 	void pushInteger(lua_Integer value);
-
 	void push(bool value);
-
-	template<typename T, typename std::enable_if< std::is_integral<T>::value && !std::is_same<T, bool>::value, int>::type = 0>
-	void push(const T value)
-	{
-		pushInteger(static_cast<lua_Integer>(value));
-	}
+	void push(const std::string & value);
 
 	template<typename T>
 	void push(const boost::optional<T> & value)
@@ -45,6 +39,18 @@ public:
 			push(value.get());
 		else
 			pushNil();
+	}
+
+	template<typename T, typename std::enable_if< std::is_integral<T>::value && !std::is_same<T, bool>::value, int>::type = 0>
+	void push(const T value)
+	{
+		pushInteger(static_cast<lua_Integer>(value));
+	}
+
+	template<typename T, typename std::enable_if< std::is_enum<T>::value, int>::type = 0>
+	void push(const T value)
+	{
+		pushInteger(static_cast<lua_Integer>(value));
 	}
 
 	template<typename T, typename std::enable_if< std::is_class<T>::value, int>::type = 0>

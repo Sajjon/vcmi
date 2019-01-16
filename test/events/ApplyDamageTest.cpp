@@ -9,9 +9,9 @@
  */
 #include "StdInc.h"
 
+#include <vcmi/events/EventBus.h>
 #include <vcmi/events/ApplyDamage.h>
 
-#include "../../lib/events/EventBus.h"
 #include "../../lib/NetPacks.h"
 
 namespace test

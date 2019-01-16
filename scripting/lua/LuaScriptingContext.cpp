@@ -23,6 +23,8 @@
 #include "api/ServerCb.h"
 #include "api/BattleServerCb.h"
 
+#include "api/events/EventBusProxy.h"
+
 #include "../../lib/JsonNode.h"
 #include "../../lib/NetPacks.h"
 #include "../../lib/filesystem/Filesystem.h"
@@ -32,9 +34,10 @@ namespace scripting
 
 const std::string LuaContext::STATE_FIELD = "DATA";
 
-LuaContext::LuaContext(vstd::CLoggerBase * logger_, const Script * source)
-	: ContextBase(logger_),
-	script(source)
+LuaContext::LuaContext(const Script * source, const Environment * env_)
+	: ContextBase(env_->logger()),
+	script(source),
+	env(env_)
 {
 	L = luaL_newstate();
 
@@ -60,6 +63,21 @@ LuaContext::LuaContext(vstd::CLoggerBase * logger_, const Script * source)
 	int top = lua_gettop(L);
 	if(top != 0)
 		logger->error("Lua stack at %s unbalanced: %d", BOOST_CURRENT_FUNCTION, top);
+
+	popAll();
+
+	LuaStack S(L);
+
+	S.push(env->game());
+	lua_setglobal(L, "GAME");
+
+	S.push(env->battle());
+	lua_setglobal(L, "BATTLE");
+
+	S.push(env->eventBus());
+	lua_setglobal(L, "EVENT_BUS");
+
+	popAll();
 }
 
 LuaContext::~LuaContext()
@@ -93,20 +111,6 @@ void LuaContext::cleanupGlobals()
 	//math.random
 
 	//math.randomseed
-}
-
-void LuaContext::init(const GameCb * cb, const BattleCb * battleCb)
-{
-	icb = cb;
-	bicb = battleCb;
-
-	LuaStack S(L);
-
-	S.push(icb);
-	lua_setglobal(L, "GAME");
-
-	S.push(bicb);
-	lua_setglobal(L, "BATTLE");
 }
 
 void LuaContext::run(const JsonNode & initialState)
@@ -440,16 +444,19 @@ void LuaContext::registerCore()
 	lua_setglobal(L, "require");
 
 	api::ServerCbProxy::registrator(L, api::TypeRegistry::get());
-	lua_settop(L, 0);
+	popAll();
 
 	api::BattleServerCbProxy::registrator(L, api::TypeRegistry::get());
-	lua_settop(L, 0);
+	popAll();;
 
 	api::GameCbProxy::registrator(L, api::TypeRegistry::get());
-	lua_settop(L, 0);
+	popAll();
 
 	api::BattleCbProxy::registrator(L, api::TypeRegistry::get());
-	lua_settop(L, 0);
+	popAll();
+
+	api::events::EventBusProxy::registrator(L, api::TypeRegistry::get());
+	popAll();
 }
 
 int LuaContext::require(lua_State * L)
@@ -522,7 +529,7 @@ int LuaContext::loadModule()
 		ResourceID id(modulePath, EResType::LUA);
 
 		if(!loader->existsResource(id))
-			return errorRetVoid("Module not found "+modulePath);
+			return errorRetVoid("Module not found: "+modulePath);
 
 		auto rawData = loader->load(id)->readAll();
 

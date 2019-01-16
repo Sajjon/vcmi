@@ -1219,8 +1219,6 @@ namespace ERMConverter
 			//TODO: identifier
 			//TODO: condition
 
-			std::string name = trig.name;
-
 			out << "ERM.addTrigger({" << std::endl;
 			out << "\tname = '" << trig.name << "'," << std::endl;
 			out << "\tfn = function ()" << std::endl;

@@ -1,5 +1,5 @@
 /*
- * UnitProxy.h, part of VCMI engine
+ * BattleEvents.h, part of VCMI engine
  *
  * Authors: listed in file AUTHORS in main folder
  *
@@ -10,28 +10,28 @@
 
 #pragma once
 
-#include <vcmi/scripting/Service.h>
-#include "../../../../lib/battle/Unit.h"
+#include <vcmi/events/ApplyDamage.h>
 
 #include "../../LuaWrapper.h"
+
+#include "EventBusProxy.h"
 
 namespace scripting
 {
 namespace api
 {
-namespace battle
+namespace events
 {
-using ::battle::IUnitInfo;
-using ::battle::Unit;
 
-class UnitProxy : public OpaqueWrapper<const Unit, UnitProxy>
+class ApplyDamageProxy : public OpaqueWrapper<::events::ApplyDamage, ApplyDamageProxy>
 {
 public:
-	using Wrapper = OpaqueWrapper<const Unit, UnitProxy>;
-
+	using Wrapper = OpaqueWrapper<::events::ApplyDamage, ApplyDamageProxy>;
 	static const std::vector<typename Wrapper::RegType> REGISTER;
 };
 
 }
 }
 }
+
+

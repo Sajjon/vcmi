@@ -40,12 +40,36 @@ end
 
 ERM.BU = getReceiverLoader("BU")
 ERM.IF = getReceiverLoader("IF")
+ERM.MF = getReceiverLoader("MF")
 
-local triggers = {}
+local Triggers = {}
+
+local function getTriggerLoader(name)
+	local name = name
+
+	local loader = function(...)
+		Triggers[name] = Triggers[name] or require("core:erm."..name.."_T")
+
+		local trigger = Triggers[name]
+		trigger.ERM = ERM
+		return trigger
+	end
+	return loader
+end
+
+local TriggerLoaders = {}
+
+TriggerLoaders.PI = getTriggerLoader("PI")
+TriggerLoaders.MF = getTriggerLoader("MF")
+
 
 ERM.addTrigger = function(t)
-	triggers[t.name] = triggers[t.name] or {}
-	table.insert(triggers[t.name], t.fn)
+	local name = t.name
+	local fn = t.fn
+
+	local trigger = TriggerLoaders[name]()
+
+	table.insert(trigger.fn, fn)
 end
 
 ERM.callInstructions = function(cb)
@@ -54,18 +78,11 @@ ERM.callInstructions = function(cb)
 		ERM.callTrigger("PI")
 		DATA.ERM.instructionsCalled = true
 	end
-
 end
 
 ERM.callTrigger = function(name)
-
-	if triggers[name] then
-		for _, fn in ipairs(triggers[name]) do
-			fn()
-		end
-
-	end
-
+	local trigger = TriggerLoaders[name]()
+	trigger:call()
 end
 
 return ERM
