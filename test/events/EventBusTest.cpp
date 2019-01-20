@@ -1,5 +1,5 @@
 /*
- * events\EventBusTest.cpp, part of VCMI engine
+ * EventBusTest.cpp, part of VCMI engine
  *
  * Authors: listed in file AUTHORS in main folder
  *

@@ -9,6 +9,9 @@ set(lib_SRCS
 
 		api/battle/UnitProxy.cpp
 
+		api/events/BattleEvents.cpp
+		api/events/EventBusProxy.cpp
+
 		api/BattleCb.cpp
 		api/BattleServerCb.cpp
 		api/GameCb.cpp

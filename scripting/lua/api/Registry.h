@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <typeinfo>
+#include <typeindex>
+
 #include <lua.hpp>
 
 #define VCMI_REGISTER_SCRIPT_API(Type, Name) \
