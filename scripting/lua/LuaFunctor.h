@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <lua.hpp>
-
 namespace scripting
 {
 

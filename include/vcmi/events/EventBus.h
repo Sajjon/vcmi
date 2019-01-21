@@ -35,10 +35,10 @@ public:
 	}
 
 	template <typename E>
-	void executeEvent(const Environment * env, E & event) const
+	void executeEvent(E & event) const
 	{
 		auto registry = E::getRegistry();
-		registry->executeEvent(env, this, event);
+		registry->executeEvent(this, event);
 	}
 };
 }

@@ -17,14 +17,6 @@
 
 #include "api/Registry.h"
 
-#include "api/GameCb.h"
-#include "api/BattleCb.h"
-
-#include "api/ServerCb.h"
-#include "api/BattleServerCb.h"
-
-#include "api/events/EventBusProxy.h"
-
 #include "../../lib/JsonNode.h"
 #include "../../lib/NetPacks.h"
 #include "../../lib/filesystem/Filesystem.h"
@@ -76,12 +68,17 @@ LuaContext::LuaContext(const Script * source, const Environment * env_)
 
 	S.push(env->eventBus());
 	lua_setglobal(L, "EVENT_BUS");
+	popAll();
 
+	lua_newtable(L);
+	modules = std::make_shared<LuaReference>(L);
 	popAll();
 }
 
 LuaContext::~LuaContext()
 {
+	modules.reset();
+	scriptClosure.reset();
 	lua_close(L);
 }
 
@@ -126,6 +123,10 @@ void LuaContext::run(const JsonNode & initialState)
 		return;
 	}
 
+	scriptClosure = std::make_shared<LuaReference>(L);
+	popAll();
+	scriptClosure->push();
+
 	ret = lua_pcall(L, 0, 0, 0);
 
 	if(ret)
@@ -169,7 +170,7 @@ JsonNode LuaContext::callGlobal(const std::string & name, const JsonNode & param
 	{
 		std::string error = lua_tostring(L, -1);
 
-		boost::format fmt("LUA function %s failed with message: %s");
+		boost::format fmt("Lua function %s failed with message: %s");
 		fmt % name % error;
 
 		logger->error(fmt.str());
@@ -443,20 +444,11 @@ void LuaContext::registerCore()
 	push(&LuaContext::require, this);
 	lua_setglobal(L, "require");
 
-	api::ServerCbProxy::registrator(L, api::TypeRegistry::get());
-	popAll();
-
-	api::BattleServerCbProxy::registrator(L, api::TypeRegistry::get());
-	popAll();;
-
-	api::GameCbProxy::registrator(L, api::TypeRegistry::get());
-	popAll();
-
-	api::BattleCbProxy::registrator(L, api::TypeRegistry::get());
-	popAll();
-
-	api::events::EventBusProxy::registrator(L, api::TypeRegistry::get());
-	popAll();
+	for(auto & registar : api::Registry::get()->getCoreData())
+	{
+		registar->perform(L, api::TypeRegistry::get());
+		popAll();
+	}
 }
 
 int LuaContext::require(lua_State * L)
@@ -480,14 +472,28 @@ int LuaContext::loadModule()
 	if(argc < 1)
 		return errorRetVoid("Module name required");
 
+	//if module is loaded already, assume that module name is valid
+	modules->push();
+	lua_pushvalue(L, -2);
+	lua_rawget(L, -2);
+
+	if(lua_istable(L, -1))
+	{
+		lua_replace(L, 1);
+		lua_settop(L, 1);
+		return 1;
+	}
+
+	//continue with more checks
 	if(!lua_isstring(L, 1))
 		return errorRetVoid("Module name must be string");
 
 	std::string resourceName = toStringRaw(1);
-	popAll();
 
 	if(resourceName.empty())
 		return errorRetVoid("Module name is empty");
+
+	popAll();
 
 	auto temp = vstd::split(resourceName, ":");
 
@@ -540,12 +546,13 @@ int LuaContext::loadModule()
 		if(ret)
 			return errorRetVoid(toStringRaw(-1));
 
-		ret = lua_pcall(L, 0, LUA_MULTRET, 0);
+		ret = lua_pcall(L, 0, 1, 0);
 
 		if(ret)
 		{
 			logger->error("Module '%s' failed to run, error: %s", modulePath, toStringRaw(-1));
 			popAll();
+			return 0;
 		}
 	}
 	else
@@ -554,8 +561,12 @@ int LuaContext::loadModule()
 		return errorRetVoid("No access to scope "+scope);
 	}
 
+	modules->push();
+	lua_pushvalue(L, -2);
+	lua_rawset(L, -2);
 
-	return lua_gettop(L);
+	lua_settop(L, 1);
+	return 1;
 }
 
 int LuaContext::print(lua_State * L)

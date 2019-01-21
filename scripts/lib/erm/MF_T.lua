@@ -4,10 +4,18 @@ local trigger = TriggerBase.create()
 
 local eventBus = EVENT_BUS;
 
-local beforeApplyDamage = function(...)
-	trigger:call()
+local beforeApplyDamage = function(event)
+	trigger:call(event)
 end
 
-eventBus.subscribeBefore("ApplyDamage", beforeApplyDamage)
+local sub = eventBus:subscribeBefore("ApplyDamage", beforeApplyDamage)
+
+if type(sub) == "string" then
+	error("ApplyDamage subscription failed: "..sub)
+elseif type(sub) ~= "userdata" then
+	error("ApplyDamage subscription failed")
+end
+
+trigger.sub1 = sub
 
 return trigger

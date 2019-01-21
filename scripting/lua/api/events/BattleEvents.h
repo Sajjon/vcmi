@@ -23,11 +23,12 @@ namespace api
 namespace events
 {
 
-class ApplyDamageProxy : public OpaqueWrapper<::events::ApplyDamage, ApplyDamageProxy>
+class ApplyDamageProxy : public OpaqueWrapperEx<::events::ApplyDamage, ApplyDamageProxy>
 {
 public:
-	using Wrapper = OpaqueWrapper<::events::ApplyDamage, ApplyDamageProxy>;
+	using Wrapper = OpaqueWrapperEx<::events::ApplyDamage, ApplyDamageProxy>;
 	static const std::vector<typename Wrapper::RegType> REGISTER;
+	static const std::vector<typename Wrapper::CustomRegType> REGISTER_CUSTOM;
 };
 
 }

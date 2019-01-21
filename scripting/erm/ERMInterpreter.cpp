@@ -1219,10 +1219,11 @@ namespace ERMConverter
 			//TODO: identifier
 			//TODO: condition
 
-			out << "ERM.addTrigger({" << std::endl;
+			out << "ERM:addTrigger({" << std::endl;
 			out << "\tname = '" << trig.name << "'," << std::endl;
 			out << "\tfn = function ()" << std::endl;
 
+			out << "local y = ERM.getY('" << trig.name  << "')" << std::endl;
 			LinePointer lp = trigger.line;
 			++lp;
 
@@ -1462,7 +1463,7 @@ std::string ERMInterpreter::convert()
 	for(const auto & p : postTriggers)
 		;//TODO
 
-	out << "ERM.callInstructions(instructions)" << std::endl;
+	out << "ERM:callInstructions(instructions)" << std::endl;
 
 	return out.str();
 }

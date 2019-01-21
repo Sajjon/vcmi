@@ -14,6 +14,7 @@
 #include "../../LuaStack.h"
 #include "../../LuaCallWrapper.h"
 #include "../Registry.h"
+#include "SubscriptionRegistryProxy.h"
 
 namespace scripting
 {
@@ -41,6 +42,19 @@ const std::vector<ApplyDamageProxy::RegType> ApplyDamageProxy::REGISTER =
 	}
 };
 
+const std::vector<ApplyDamageProxy::CustomRegType> ApplyDamageProxy::REGISTER_CUSTOM =
+{
+	{
+		"subscribeBefore",
+		&SubscriptionRegistryProxy<ApplyDamageProxy>::subscribeBefore,
+		true
+	},
+	{
+		"subscribeAfter",
+		&SubscriptionRegistryProxy<ApplyDamageProxy>::subscribeAfter,
+		true
+	}
+};
 
 }
 }

@@ -25,25 +25,11 @@ namespace scripting
 using namespace ::testing;
 using ::events::ApplyDamage;
 
-template <typename T>
-class ListenerMock
-{
-public:
-	MOCK_METHOD2_T(beforeEvent, void(const EventBus *, T &));
-	MOCK_METHOD2_T(afterEvent, void(const EventBus *, const T &));
-};
-
 class ERM_MF : public Test, public ScriptFixture
 {
 public:
-	StrictMock<ListenerMock<ApplyDamage>> listenerMock;
-
 	std::shared_ptr<StrictMock<UnitMock>> targetMock;
 
-	void setDefaultExpectations()
-	{
-		EXPECT_CALL(environmentMock, eventBus()).WillRepeatedly(Return(&eventBus));
-	}
 
 protected:
 	void SetUp() override
@@ -70,9 +56,9 @@ TEST_F(ERM_MF, ChangesDamage)
 	BattleStackAttacked pack;
 	pack.damageAmount = 23450;
 
-	ApplyDamage event(&pack, targetMock);
+	ApplyDamage event(&environmentMock, &pack, targetMock);
 
-	eventBus.executeEvent(&environmentMock, event);
+	eventBus.executeEvent(event);
 
 	EXPECT_EQ(pack.damageAmount, 23460);
 }

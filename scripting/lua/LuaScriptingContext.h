@@ -11,6 +11,7 @@
 #pragma once
 
 #include "LuaWrapper.h"
+#include "LuaReference.h"
 
 #include "../../lib/ScriptHandler.h"
 #include "../../lib/CScriptingModule.h"
@@ -65,6 +66,9 @@ private:
 	const Script * script;
 
 	const Environment * env;
+
+	std::shared_ptr<LuaReference> modules;
+	std::shared_ptr<LuaReference> scriptClosure;
 
 	void cleanupGlobals();
 

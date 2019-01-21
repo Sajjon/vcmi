@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include <lua.hpp>
-
 #include "api/Registry.h"
 
 class JsonNode;
@@ -26,6 +24,8 @@ public:
 	LuaStack(lua_State * L_, api::TypeRegistry * typeRegistry_);
 	void balance();
 	void clear();
+
+	void pushByIndex(lua_Integer index);
 
 	void pushNil();
 	void pushInteger(lua_Integer value);
@@ -56,13 +56,39 @@ public:
 	template<typename T, typename std::enable_if< std::is_class<T>::value, int>::type = 0>
 	void push(const T * value)
 	{
-		pushUData<const T>(value);
+		pushObject<const T>(value);
 	}
 
 	template<typename T, typename std::enable_if< std::is_class<T>::value, int>::type = 0>
 	void push(T * value)
 	{
-		pushUData<T>(value);
+		pushObject<T>(value);
+	}
+
+
+	template<typename T, typename std::enable_if< std::is_class<T>::value, int>::type = 0>
+	void push(std::unique_ptr<T> && value)
+	{
+		if(!value)
+		{
+			pushNil();
+			return;
+		}
+
+		using UData = std::unique_ptr<T>;
+
+		void * raw = lua_newuserdata(L, sizeof(UData));
+
+		if(!raw)
+		{
+			pushNil();
+			return;
+		}
+
+		new(raw) UData(std::move(value));
+
+		luaL_getmetatable(L, typeRegistry->getKey<UData>());
+		lua_setmetatable(L, -2);
 	}
 
 	bool tryGetInteger(int position, lua_Integer & value);
@@ -87,10 +113,22 @@ public:
 	bool tryGet(int position, double & value);
 	bool tryGet(int position, std::string & value);
 
+	template<typename T, typename std::enable_if< std::is_class<T>::value, int>::type = 0>
+	bool tryGet(int position, T * & value)
+	{
+		void * raw = luaL_checkudata(L, position, typeRegistry->getKey<T *>());
+
+		if(!raw)
+			return false;
+
+		value = *(static_cast<T **>(raw));
+		return true;
+	}
+
 	template<typename T>
 	bool tryGet(int position, std::shared_ptr<T> & value)
 	{
-		void * raw = luaL_checkudata(L, position, typeRegistry->getKey<std::shared_ptr<T> *>());
+		void * raw = luaL_checkudata(L, position, typeRegistry->getKey<std::shared_ptr<T>>());
 
 		if(!raw)
 			return false;
@@ -109,19 +147,24 @@ private:
 	api::TypeRegistry * typeRegistry;
 	int initialTop;
 
-	template<typename UData>
-	void pushUData(UData * value)
+	template<typename Object>
+	void pushObject(Object * value)
 	{
 		if(value)
 		{
-			using Object = UData *;
+			using UData = Object *;
 
-			void * raw = lua_newuserdata(L, sizeof(Object));
+			void * raw = lua_newuserdata(L, sizeof(UData));
 
-			Object * ptr = static_cast<Object *>(raw);
+			UData * ptr = static_cast<UData *>(raw);
 			*ptr = value;
 
-			luaL_getmetatable(L, typeRegistry->getKey<Object *>());
+			luaL_getmetatable(L, typeRegistry->getKey<UData>());
+//			if(!lua_istable(L, -1))
+//			{
+//				lua_pushstring(L, "internal error");
+//				lua_error(L);
+//			}
 			lua_setmetatable(L, -2);
 		}
 		else

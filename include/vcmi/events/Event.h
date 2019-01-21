@@ -10,8 +10,6 @@
 
 #pragma once
 
-class Environment;
-
 namespace events
 {
 
@@ -25,7 +23,7 @@ class DLL_LINKAGE Event
 public:
 
 protected:
-	virtual void execute(const Environment * env, const EventBus * bus) = 0;
+	virtual void execute() = 0;
 };
 
 }

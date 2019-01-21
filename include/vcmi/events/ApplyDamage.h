@@ -30,9 +30,9 @@ public:
 	using PostHandler = SubscriptionRegistry<ApplyDamage>::PostHandler;
 	using BusTag = SubscriptionRegistry<ApplyDamage>::BusTag;
 
-	ApplyDamage(BattleStackAttacked * pack_, std::shared_ptr<battle::Unit> target_);
+	ApplyDamage(const Environment * env_, BattleStackAttacked * pack_, std::shared_ptr<battle::Unit> target_);
 
-	void execute(const Environment * env, const EventBus * bus) override;
+	void execute() override;
 
 	static SubscriptionRegistry<ApplyDamage> * getRegistry();
 
@@ -44,6 +44,7 @@ public:
 private:
 	int64_t initalDamage;
 
+	const Environment * env;
 	BattleStackAttacked * pack;
 	std::shared_ptr<battle::Unit> target;
 };

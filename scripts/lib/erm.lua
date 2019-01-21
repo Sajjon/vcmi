@@ -2,6 +2,7 @@
 DATA = DATA or {}
 
 local ERM = {}
+
 local DATA = DATA
 
 DATA.ERM = DATA.ERM or {}
@@ -63,7 +64,7 @@ TriggerLoaders.PI = getTriggerLoader("PI")
 TriggerLoaders.MF = getTriggerLoader("MF")
 
 
-ERM.addTrigger = function(t)
+ERM.addTrigger = function(self, t)
 	local name = t.name
 	local fn = t.fn
 
@@ -72,15 +73,15 @@ ERM.addTrigger = function(t)
 	table.insert(trigger.fn, fn)
 end
 
-ERM.callInstructions = function(cb)
+ERM.callInstructions = function(self, cb)
 	if not DATA.ERM.instructionsCalled then
 		cb()
-		ERM.callTrigger("PI")
+		self:callTrigger("PI")
 		DATA.ERM.instructionsCalled = true
 	end
 end
 
-ERM.callTrigger = function(name)
+ERM.callTrigger = function(self, name)
 	local trigger = TriggerLoaders[name]()
 	trigger:call()
 end

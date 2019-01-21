@@ -2,6 +2,7 @@ include_directories(${Boost_INCLUDE_DIRS} ${LUA_INCLUDE_DIR} ${CMAKE_HOME_DIRECT
 
 set(lib_SRCS
 		StdInc.cpp
+		LuaReference.cpp
 		LuaScriptModule.cpp
 		LuaScriptingContext.cpp
 		LuaSpellEffect.cpp
@@ -11,6 +12,7 @@ set(lib_SRCS
 
 		api/events/BattleEvents.cpp
 		api/events/EventBusProxy.cpp
+		api/events/SubscriptionRegistryProxy.cpp
 
 		api/BattleCb.cpp
 		api/BattleServerCb.cpp

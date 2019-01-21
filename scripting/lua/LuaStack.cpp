@@ -41,6 +41,11 @@ void LuaStack::clear()
 	lua_settop(L, 0);
 }
 
+void LuaStack::pushByIndex(lua_Integer index)
+{
+	lua_pushvalue(L, index);
+}
+
 void LuaStack::pushNil()
 {
 	lua_pushnil(L);

@@ -21,21 +21,18 @@ namespace api
 namespace events
 {
 
-//class SubscriptionProxy : public OpaqueWrapper<::events::EventSubscription, SubscriptionProxy>
-//{
-//public:
-//	using Wrapper = OpaqueWrapper<::events::EventSubscription, SubscriptionProxy>;
-//	static const std::vector<typename Wrapper::RegType> REGISTER;
-//};
-
-class EventBusProxy : public OpaqueWrapper<::events::EventBus, EventBusProxy>
+class EventBusProxy : public OpaqueWrapperEx<::events::EventBus, EventBusProxy>
 {
 public:
-	using Wrapper = OpaqueWrapper<::events::EventBus, EventBusProxy>;
+	using Wrapper = OpaqueWrapperEx<::events::EventBus, EventBusProxy>;
 	static const std::vector<typename Wrapper::RegType> REGISTER;
+	static const std::vector<typename Wrapper::CustomRegType> REGISTER_CUSTOM;
 
-	static int subscribeBefore(lua_State * L, ::events::EventBus * object);
-	static int subscribeAfter(lua_State * L, ::events::EventBus * object);
+	static int subscribeBefore(lua_State * L);
+	static int subscribeAfter(lua_State * L);
+
+private:
+	static int subscribe(lua_State * L, const std::string & method);
 };
 
 }
