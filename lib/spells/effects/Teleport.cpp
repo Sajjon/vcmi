@@ -61,15 +61,15 @@ bool Teleport::applicable(Problem & problem, const Mechanics * m) const
 	return UnitEffect::applicable(problem, m);
 }
 
-void Teleport::apply(ServerBattleCb * battleState, RNG & rng, const Mechanics * m, const EffectTarget & target) const
+void Teleport::apply(ServerCallback * server, const Mechanics * m, const EffectTarget & target) const
 {
 	BattleStackMoved pack;
 	std::string errorMessage;
 
 	if(prepareEffects(errorMessage, pack, m, target))
-		battleState->apply(&pack);
+		server->apply(&pack);
 	else
-		battleState->complain(errorMessage);
+		server->complain(errorMessage);
 }
 
 bool Teleport::prepareEffects(std::string & errorMessage, BattleStackMoved & pack, const Mechanics * m, const EffectTarget & target) const

@@ -64,14 +64,14 @@ TEST_F(TeleportApplyTest, MovesUnit)
 	EXPECT_CALL(unit, unitId()).Times(AtLeast(1)).WillRepeatedly(Return(unitId));
 
 	EXPECT_CALL(*battleFake, moveUnit(Eq(unitId), Eq(destination)));
-
 	EXPECT_CALL(mechanicsMock, getEffectLevel()).WillRepeatedly(Return(0));
+	EXPECT_CALL(serverMock, apply(Matcher<BattleStackMoved *>(_))).Times(1);
 
 	Target target;
 	target.emplace_back(&unit, BattleHex());
 	target.emplace_back(destination);
 
-    subject->apply(battleProxy.get(), rngMock, &mechanicsMock, target);
+    subject->apply(&serverMock, &mechanicsMock, target);
 }
 
 }
